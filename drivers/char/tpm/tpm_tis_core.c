@@ -333,13 +333,16 @@ static int tpm_tis_send_data(struct tpm_chip *chip, const u8 *buf, size_t len)
 	size_t count = 0;
 	bool itpm = priv->flags & TPM_TIS_ITPM_WORKAROUND;
 
+	printk("status before tpm_tis_status = %d\n", status);
 	status = tpm_tis_status(chip);
+	printk("status after tpm_tis_status = %d\n", status);
 	if ((status & TPM_STS_COMMAND_READY) == 0) {
 		tpm_tis_ready(chip);
 		if (wait_for_tpm_stat
 		    (chip, TPM_STS_COMMAND_READY, chip->timeout_b,
 		     &priv->int_queue, false) < 0) {
 			rc = -ETIME;
+			printk("rc = -ETIME");
 			goto out_err;
 		}
 	}
@@ -373,6 +376,7 @@ static int tpm_tis_send_data(struct tpm_chip *chip, const u8 *buf, size_t len)
 
 	/* write last byte */
 	rc = tpm_tis_write8(priv, TPM_DATA_FIFO(priv->locality), buf[count]);
+	printk("rc = %d after tpm_tis_write8\n", rc);
 	if (rc < 0)
 		goto out_err;
 
@@ -676,9 +680,11 @@ static irqreturn_t tis_int_handler(int dummy, void *dev_id)
 
 	rc = tpm_tis_read32(priv, TPM_INT_STATUS(priv->locality), &interrupt);
 	if (rc < 0)
+		printk("tis_int_handler rc < 0\n");
 		return IRQ_NONE;
 
 	if (interrupt == 0)
+		printk("interrupt == 0\n");
 		return IRQ_NONE;
 
 	priv->irq_tested = true;
@@ -696,9 +702,11 @@ static irqreturn_t tis_int_handler(int dummy, void *dev_id)
 	/* Clear interrupts handled with TPM_EOI */
 	rc = tpm_tis_write32(priv, TPM_INT_STATUS(priv->locality), interrupt);
 	if (rc < 0)
+		printk("tis_int_handler rc < 0 2\n");
 		return IRQ_NONE;
 
 	tpm_tis_read32(priv, TPM_INT_STATUS(priv->locality), &interrupt);
+	printk("before return IRQ_HANDLED\n");
 	return IRQ_HANDLED;
 }
 
